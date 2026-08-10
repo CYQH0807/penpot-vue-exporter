@@ -1,0 +1,321 @@
+{
+  "schemaVersion": "0.1",
+  "source": {
+    "type": "penpot",
+    "fileId": "3be9e5e1-190f-8090-8008-70c38b7e9567",
+    "pageId": "c0a498d1-6694-8028-8008-737f31635e2b",
+    "rootShapeId": "a436abd0-8f47-80d3-8008-73b59dd10795"
+  },
+  "tree": {
+    "id": "a436abd0-8f47-80d3-8008-73b59dd10795",
+    "name": "AI Flex Preview",
+    "nodeType": "container",
+    "source": {
+      "shapeId": "a436abd0-8f47-80d3-8008-73b59dd10795",
+      "shapeType": "board",
+      "parentId": "00000000-0000-0000-0000-000000000000",
+      "x": 141,
+      "y": 902,
+      "width": 1108,
+      "height": 220
+    },
+    "layout": {
+      "type": "flex",
+      "direction": "column",
+      "wrap": "nowrap",
+      "rowGap": 0,
+      "columnGap": 0,
+      "padding": {
+        "top": 49,
+        "right": 126,
+        "bottom": 46,
+        "left": 82
+      },
+      "alignItems": "start",
+      "alignContent": "stretch",
+      "justifyItems": null,
+      "justifyContent": "start",
+      "horizontalSizing": "fix",
+      "verticalSizing": "fix"
+    },
+    "children": [
+      {
+        "id": "a436abd0-8f47-80d3-8008-73b59dde0120",
+        "name": "AI Query Layout",
+        "nodeType": "container",
+        "source": {
+          "shapeId": "a436abd0-8f47-80d3-8008-73b59dde0120",
+          "shapeType": "board",
+          "parentId": "a436abd0-8f47-80d3-8008-73b59dd10795",
+          "x": 267,
+          "y": 951,
+          "width": 900,
+          "height": 125
+        },
+        "layout": {
+          "type": "flex",
+          "direction": "column",
+          "wrap": "nowrap",
+          "rowGap": 15,
+          "columnGap": 0,
+          "padding": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "alignItems": "start",
+          "alignContent": "stretch",
+          "justifyItems": null,
+          "justifyContent": "start",
+          "horizontalSizing": "fix",
+          "verticalSizing": "fix"
+        },
+        "layoutChild": {
+          "absolute": false,
+          "zIndex": 1,
+          "horizontalSizing": "fix",
+          "verticalSizing": "fix",
+          "alignSelf": "auto",
+          "margin": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          }
+        },
+        "children": [
+          {
+            "id": "a436abd0-8f47-80d3-8008-73b59ddf3fff",
+            "name": "AI Toolbar",
+            "nodeType": "container",
+            "source": {
+              "shapeId": "a436abd0-8f47-80d3-8008-73b59ddf3fff",
+              "shapeType": "board",
+              "parentId": "a436abd0-8f47-80d3-8008-73b59dde0120",
+              "x": 267,
+              "y": 951,
+              "width": 900,
+              "height": 34
+            },
+            "layout": {
+              "type": "flex",
+              "direction": "row",
+              "wrap": "nowrap",
+              "rowGap": 0,
+              "columnGap": 0,
+              "padding": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              },
+              "alignItems": "center",
+              "alignContent": "stretch",
+              "justifyItems": null,
+              "justifyContent": "end",
+              "horizontalSizing": "fix",
+              "verticalSizing": "fix"
+            },
+            "layoutChild": {
+              "absolute": false,
+              "zIndex": 0,
+              "horizontalSizing": "fix",
+              "verticalSizing": "fix",
+              "alignSelf": "auto",
+              "margin": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            },
+            "children": [
+              {
+                "id": "a436abd0-8f47-80d3-8008-73b59de113d7",
+                "name": "BRMS Button",
+                "nodeType": "component",
+                "component": "XButton",
+                "props": {
+                  "text": "查询",
+                  "type": "primary",
+                  "action": "search"
+                },
+                "source": {
+                  "shapeId": "a436abd0-8f47-80d3-8008-73b59de113d7",
+                  "shapeType": "board",
+                  "parentId": "a436abd0-8f47-80d3-8008-73b59ddf3fff",
+                  "x": 1079,
+                  "y": 951,
+                  "width": 88,
+                  "height": 34
+                },
+                "layoutChild": {
+                  "absolute": false,
+                  "zIndex": 0,
+                  "horizontalSizing": "fix",
+                  "verticalSizing": "fix",
+                  "alignSelf": "center",
+                  "margin": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  }
+                },
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "a436abd0-8f47-80d3-8008-73b59de0170e",
+            "name": "AI Fields Row",
+            "nodeType": "container",
+            "source": {
+              "shapeId": "a436abd0-8f47-80d3-8008-73b59de0170e",
+              "shapeType": "board",
+              "parentId": "a436abd0-8f47-80d3-8008-73b59dde0120",
+              "x": 267,
+              "y": 1000,
+              "width": 900,
+              "height": 76
+            },
+            "layout": {
+              "type": "flex",
+              "direction": "row",
+              "wrap": "nowrap",
+              "rowGap": 0,
+              "columnGap": 0,
+              "padding": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              },
+              "alignItems": "start",
+              "alignContent": "stretch",
+              "justifyItems": null,
+              "justifyContent": "start",
+              "horizontalSizing": "fix",
+              "verticalSizing": "fix"
+            },
+            "layoutChild": {
+              "absolute": false,
+              "zIndex": 0,
+              "horizontalSizing": "fix",
+              "verticalSizing": "fix",
+              "alignSelf": "auto",
+              "margin": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            },
+            "children": [
+              {
+                "id": "a436abd0-8f47-80d3-8008-73b59de1f770",
+                "name": "BRMS FieldGroup",
+                "nodeType": "component",
+                "component": "XFieldGroup",
+                "props": {
+                  "label": "查询条件",
+                  "prop": "keyword"
+                },
+                "source": {
+                  "shapeId": "a436abd0-8f47-80d3-8008-73b59de1f770",
+                  "shapeType": "board",
+                  "parentId": "a436abd0-8f47-80d3-8008-73b59de0170e",
+                  "x": 267,
+                  "y": 1000,
+                  "width": 300,
+                  "height": 76
+                },
+                "layoutChild": {
+                  "absolute": false,
+                  "zIndex": 0,
+                  "horizontalSizing": "fix",
+                  "verticalSizing": "fix",
+                  "alignSelf": "start",
+                  "margin": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  }
+                },
+                "children": []
+              },
+              {
+                "id": "a436abd0-8f47-80d3-8008-73b59de2bd47",
+                "name": "BRMS FieldGroup",
+                "nodeType": "component",
+                "component": "XFieldGroup",
+                "props": {
+                  "label": "查询条件",
+                  "prop": "keyword"
+                },
+                "source": {
+                  "shapeId": "a436abd0-8f47-80d3-8008-73b59de2bd47",
+                  "shapeType": "board",
+                  "parentId": "a436abd0-8f47-80d3-8008-73b59de0170e",
+                  "x": 567,
+                  "y": 1000,
+                  "width": 300,
+                  "height": 76
+                },
+                "layoutChild": {
+                  "absolute": false,
+                  "zIndex": 0,
+                  "horizontalSizing": "fix",
+                  "verticalSizing": "fix",
+                  "alignSelf": "start",
+                  "margin": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  }
+                },
+                "children": []
+              },
+              {
+                "id": "a436abd0-8f47-80d3-8008-73b59de3028d",
+                "name": "BRMS FieldGroup",
+                "nodeType": "component",
+                "component": "XFieldGroup",
+                "props": {
+                  "label": "查询条件",
+                  "prop": "keyword"
+                },
+                "source": {
+                  "shapeId": "a436abd0-8f47-80d3-8008-73b59de3028d",
+                  "shapeType": "board",
+                  "parentId": "a436abd0-8f47-80d3-8008-73b59de0170e",
+                  "x": 867,
+                  "y": 1000,
+                  "width": 299.99999999999955,
+                  "height": 76
+                },
+                "layoutChild": {
+                  "absolute": false,
+                  "zIndex": 0,
+                  "horizontalSizing": "fix",
+                  "verticalSizing": "fix",
+                  "alignSelf": "start",
+                  "margin": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  }
+                },
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

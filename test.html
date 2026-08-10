@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Group</title>
+  <style>
+    /* Reset & base styling */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #070708;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    
+    /* Layout canvas container */
+    .canvas-container {
+      position: relative;
+      width: 929px;
+      height: 132px;
+    }
+
+    /* Generated Layers CSS */
+    .group {
+      width: 929px;
+      height: 132px;
+      position: absolute;
+      left: 223px;
+      top: 144px;
+    }
+    
+    .brms-button {
+      width: 88px;
+      height: 34px;
+      position: absolute;
+      left: 841px;
+      top: 0px;
+      background-color: #1677ff;
+      border-radius: 4px;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      user-select: none;
+    }
+    
+    .label {
+      width: 28px;
+      height: 17px;
+      position: absolute;
+      left: 1082px;
+      top: 152px;
+      color: #ffffff;
+      font-family: "sourcesanspro";
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.2;
+      letter-spacing: 0px;
+      text-align: left;
+      text-decoration: none;
+      text-transform: none;
+    }
+    
+    .brms-fieldgroup {
+      width: 300px;
+      height: 76px;
+      position: absolute;
+      left: 0px;
+      top: 56px;
+      background-color: #ffffff;
+      border-radius: 6px;
+      outline: none;
+      border: 1px solid #ccc;
+      cursor: text;
+    }
+    
+    .label {
+      width: 42px;
+      height: 17px;
+      position: absolute;
+      left: 247px;
+      top: 242px;
+      color: #86909c;
+      font-family: "sourcesanspro";
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.2;
+      letter-spacing: 0px;
+      text-align: left;
+      text-decoration: none;
+      text-transform: none;
+    }
+    
+    .label {
+      width: 35px;
+      height: 17px;
+      position: absolute;
+      left: 235px;
+      top: 208px;
+      color: #1d2129;
+      font-family: "sourcesanspro";
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.2;
+      letter-spacing: 0px;
+      text-align: left;
+      text-decoration: none;
+      text-transform: none;
+    }
+    
+    .control {
+      width: 276px;
+      height: 32px;
+      position: absolute;
+      left: 235px;
+      top: 234px;
+      background-color: #ffffff;
+      border-radius: 4px;
+      box-shadow: inset 0 0 0 1px #d9dde5; /* inner stroke */
+    }
+    
+    .brms-fieldgroup {
+      width: 300px;
+      height: 76px;
+      position: absolute;
+      left: 321px;
+      top: 56px;
+      background-color: #ffffff;
+      border-radius: 6px;
+      outline: none;
+      border: 1px solid #ccc;
+      cursor: text;
+    }
+    
+    .label {
+      width: 42px;
+      height: 17px;
+      position: absolute;
+      left: 568px;
+      top: 242px;
+      color: #86909c;
+      font-family: "sourcesanspro";
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.2;
+      letter-spacing: 0px;
+      text-align: left;
+      text-decoration: none;
+      text-transform: none;
+    }
+    
+    .label {
+      width: 35px;
+      height: 17px;
+      position: absolute;
+      left: 556px;
+      top: 208px;
+      color: #1d2129;
+      font-family: "sourcesanspro";
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.2;
+      letter-spacing: 0px;
+      text-align: left;
+      text-decoration: none;
+      text-transform: none;
+    }
+    
+    .control {
+      width: 276px;
+      height: 32px;
+      position: absolute;
+      left: 556px;
+      top: 234px;
+      background-color: #ffffff;
+      border-radius: 4px;
+      box-shadow: inset 0 0 0 1px #d9dde5; /* inner stroke */
+    }
+    
+    .brms-fieldgroup {
+      width: 300px;
+      height: 76px;
+      position: absolute;
+      left: 629px;
+      top: 56px;
+      background-color: #ffffff;
+      border-radius: 6px;
+      outline: none;
+      border: 1px solid #ccc;
+      cursor: text;
+    }
+    
+    .label {
+      width: 42px;
+      height: 17px;
+      position: absolute;
+      left: 876px;
+      top: 242px;
+      color: #86909c;
+      font-family: "sourcesanspro";
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.2;
+      letter-spacing: 0px;
+      text-align: left;
+      text-decoration: none;
+      text-transform: none;
+    }
+    
+    .label {
+      width: 35px;
+      height: 17px;
+      position: absolute;
+      left: 864px;
+      top: 208px;
+      color: #1d2129;
+      font-family: "sourcesanspro";
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.2;
+      letter-spacing: 0px;
+      text-align: left;
+      text-decoration: none;
+      text-transform: none;
+    }
+    
+    .control {
+      width: 276px;
+      height: 32px;
+      position: absolute;
+      left: 864px;
+      top: 234px;
+      background-color: #ffffff;
+      border-radius: 4px;
+      box-shadow: inset 0 0 0 1px #d9dde5; /* inner stroke */
+    }
+  </style>
+</head>
+<body>
+  <div class="canvas-container">
+    <div class="group">
+      <button class="brms-button" type="button">
+        <label class="label">查询</label>
+      </button>
+      <input class="brms-fieldgroup" placeholder="请输入" type="text" />
+      <input class="brms-fieldgroup" placeholder="请输入" type="text" />
+      <input class="brms-fieldgroup" placeholder="请输入" type="text" />
+    </div>
+  </div>
+</body>
+</html>
