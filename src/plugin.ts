@@ -24,6 +24,7 @@ const UI_HEIGHT = 680;
 
 interface BasicAssetDefinition {
   name: string;
+  libraryPath: string;
   label: string;
   component: XuiComponent;
   props: XuiProps;
@@ -34,6 +35,7 @@ interface BasicAssetDefinition {
 const BASIC_ASSET_DEFINITIONS: readonly BasicAssetDefinition[] = [
   {
     name: "BRMS Button",
+    libraryPath: "BRMS / Basic",
     label: "查询",
     component: "XButton",
     props: { text: "查询", type: "primary", action: "search" },
@@ -42,6 +44,7 @@ const BASIC_ASSET_DEFINITIONS: readonly BasicAssetDefinition[] = [
   },
   {
     name: "BRMS Input",
+    libraryPath: "BRMS / Basic",
     label: "请输入关键词",
     component: "XInput",
     props: {
@@ -55,6 +58,7 @@ const BASIC_ASSET_DEFINITIONS: readonly BasicAssetDefinition[] = [
   },
   {
     name: "BRMS FieldGroup",
+    libraryPath: "BRMS / Basic",
     label: "查询条件",
     component: "XFieldGroup",
     props: { label: "查询条件", prop: "keyword" },
@@ -66,6 +70,7 @@ const BASIC_ASSET_DEFINITIONS: readonly BasicAssetDefinition[] = [
 const FORM_ASSET_DEFINITIONS: readonly BasicAssetDefinition[] = [
   {
     name: "BRMS FormInput",
+    libraryPath: "BRMS / Form",
     label: "请输入",
     component: "XFormInput",
     props: {
@@ -79,6 +84,7 @@ const FORM_ASSET_DEFINITIONS: readonly BasicAssetDefinition[] = [
   },
   {
     name: "BRMS FormSelect",
+    libraryPath: "BRMS / Form",
     label: "请选择",
     component: "XFormSelect",
     props: {
@@ -97,6 +103,7 @@ const FORM_ASSET_DEFINITIONS: readonly BasicAssetDefinition[] = [
   },
   {
     name: "BRMS FormDatePicker",
+    libraryPath: "BRMS / Form",
     label: "请选择日期",
     component: "XFormDatePicker",
     props: {
@@ -201,17 +208,26 @@ function createAssets(definitions: readonly BasicAssetDefinition[]): string[] {
   const createdAssetNames: string[] = [];
 
   for (const definition of definitions) {
-    if (library.components.some((component) => component.name === definition.name)) {
+    const leafName = definition.name.replace(/^BRMS /, "");
+    const existing = library.components.find(
+      (component) =>
+        component.name === definition.name ||
+        (component.name === leafName && component.path === definition.libraryPath),
+    );
+    if (existing) {
+      existing.name = leafName;
+      existing.path = definition.libraryPath;
       continue;
     }
 
     const component = library.createComponent([createBasicAssetBoard(definition)]);
-    component.name = definition.name;
+    component.name = leafName;
+    component.path = definition.libraryPath;
     writeLibraryComponentMetadata(
       component,
       createXuiMetadata(definition.component, definition.props),
     );
-    createdAssetNames.push(definition.name);
+    createdAssetNames.push(`${component.path} / ${component.name}`);
   }
 
   return createdAssetNames;
@@ -273,6 +289,29 @@ function getTargetAsset(assetKey: string | null | undefined): LibraryComponent |
     .find((component): component is LibraryComponent => component !== null) ?? null;
 }
 
+/** Inserts a linked component instance beside the current selection or at a default canvas position. */
+function insertComponentInstance(assetKey: string | null | undefined): void {
+  const component = getTargetAsset(assetKey);
+  if (!component) {
+    sendError("请先选择一个组件源。");
+    return;
+  }
+
+  const reference = penpot.selection[0];
+  const instance = component.instance();
+  instance.x = reference ? reference.x + reference.width + 24 : 100;
+  instance.y = reference?.y ?? 100;
+  penpot.selection = [instance];
+
+  penpot.ui.sendMessage({
+    type: "COMPONENT_INSTANCE_INSERTED",
+    selection: penpot.selection.map(summarizeShape),
+    assets: listLibraryComponents(),
+    selectedAssetKey: getLibraryComponentKey(component),
+    componentName: component.name,
+  });
+}
+
 /** Handles one request from the Vue iframe in the Penpot plugin context. */
 function handleRequest(message: HostRequest): void {
   try {
@@ -298,6 +337,9 @@ function handleRequest(message: HostRequest): void {
         });
         return;
       }
+      case "INSERT_COMPONENT_INSTANCE":
+        insertComponentInstance(message.assetKey);
+        return;
       case "SAVE_METADATA": {
         const targetAsset = getTargetAsset(message.assetKey);
         if (!targetAsset) {

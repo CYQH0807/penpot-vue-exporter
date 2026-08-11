@@ -37,6 +37,11 @@ const selectedAsset = computed(
 );
 const hasAssetTarget = computed(() => Boolean(selectedAsset.value));
 
+/** Formats a component name with its library group for unambiguous selection. */
+function displayAssetName(asset: LibraryComponentSummary): string {
+  return asset.path ? `${asset.path} / ${asset.name}` : asset.name;
+}
+
 /** Returns a readable starter props document for the selected semantic component. */
 function defaultPropsText(nextComponent: XuiComponent): string {
   const defaults: Record<XuiComponent, XuiProps> = {
@@ -134,14 +139,18 @@ function handlePluginMessage(message: PluginMessage): void {
     case "BASIC_ASSETS_CREATED":
       assets.value = message.assets;
       successMessage.value = message.createdAssetNames.length
-        ? `已新增素材：${message.createdAssetNames.join("、")}`
-        : "基础素材已存在，无需重复创建。";
+        ? `已创建组件源：${message.createdAssetNames.join("、")}`
+        : "基础组件源已存在，无需重复创建。";
       return;
     case "FORM_ASSETS_CREATED":
       assets.value = message.assets;
       successMessage.value = message.createdAssetNames.length
-        ? `已新增 Form 素材：${message.createdAssetNames.join("、")}`
-        : "Form 素材已存在，无需重复创建。";
+        ? `已创建 Form 组件源：${message.createdAssetNames.join("、")}`
+        : "Form 组件源已存在，无需重复创建。";
+      return;
+    case "COMPONENT_INSTANCE_INSERTED":
+      applyAssetState(message.selection, message.assets, message.selectedAssetKey);
+      successMessage.value = `已插入组件实例：${message.componentName}`;
       return;
     case "EXPORT_RESULT":
       exportJson.value = message.json;
@@ -173,6 +182,19 @@ function createBasicAssets(): void {
 /** Creates the Form input/select/date-picker assets in the local library. */
 function createFormAssets(): void {
   sendPluginRequest({ type: "CREATE_FORM_ASSETS" });
+}
+
+/** Inserts the selected library component as a linked instance on the current page. */
+function insertAssetInstance(): void {
+  if (!hasAssetTarget.value) {
+    errorMessage.value = "请先选择一个组件源。";
+    return;
+  }
+
+  sendPluginRequest({
+    type: "INSERT_COMPONENT_INSTANCE",
+    assetKey: activeAssetKey.value,
+  });
 }
 
 /** Stores the current form as xui metadata on the selected component asset. */
@@ -266,12 +288,13 @@ onBeforeUnmount(() => unsubscribe?.());
       <div class="panel-heading">
         <div>
           <h2>素材库标记</h2>
-          <p>标记组件素材定义，后续实例会自动继承。</p>
+          <p>维护组件源；业务页面请使用插入实例。</p>
         </div>
         <div class="heading-actions">
           <button class="secondary" @click="refreshSelection">刷新</button>
-          <button class="primary" @click="createBasicAssets">新增基础素材</button>
-          <button class="primary" @click="createFormAssets">新增 Form 素材</button>
+          <button class="primary" :disabled="!hasSelection" @click="exportSelection">导出 IR</button>
+          <button class="primary" @click="createBasicAssets">创建基础组件</button>
+          <button class="primary" @click="createFormAssets">创建 Form 组件</button>
         </div>
       </div>
 
@@ -281,16 +304,19 @@ onBeforeUnmount(() => unsubscribe?.());
       <select id="asset" v-model="activeAssetKey" @change="onAssetChange">
         <option value="">请选择素材库组件</option>
         <option v-for="asset in assets" :key="asset.assetKey" :value="asset.assetKey">
-          {{ asset.name }}{{ asset.isLocal ? '（当前文件）' : '（共享库）' }}
+          {{ displayAssetName(asset) }}{{ asset.isLocal ? '（当前文件）' : '（共享库）' }}
         </option>
       </select>
 
       <div v-if="selectedAsset" class="asset-summary">
-        <strong>{{ selectedAsset.name }}</strong>
+        <strong>{{ displayAssetName(selectedAsset) }}</strong>
         <span>{{ selectedAsset.path || '根目录' }} · {{ selectedAsset.isLocal ? '当前文件素材库' : '共享素材库' }}</span>
         <small v-if="selectedAsset.metadata">已标记为 {{ selectedAsset.metadata.component }}</small>
         <small v-else-if="selectedAsset.metadataError" class="asset-error">标记数据异常：{{ selectedAsset.metadataError }}</small>
         <small v-else>尚未标记</small>
+        <div class="actions">
+          <button class="primary" @click="insertAssetInstance">插入实例到画布</button>
+        </div>
       </div>
       <div v-else class="empty-state">请从素材库选择一个组件，或先在画布中选中组件实例。</div>
 
@@ -325,9 +351,9 @@ onBeforeUnmount(() => unsubscribe?.());
       <div class="panel-heading">
         <div>
           <h2>导出 IR</h2>
-          <p>选择 Demo 根 Board，解析其中带 xui 标记的节点。</p>
+          <p>选择 Demo 根 Board，导出其中带 xui 标记的节点。</p>
         </div>
-        <button class="primary" :disabled="!hasSelection" @click="exportSelection">解析</button>
+        <button class="primary" :disabled="!hasSelection" @click="exportSelection">导出 IR</button>
       </div>
 
       <div v-if="exportJson" class="export-result">

@@ -45,6 +45,7 @@ export type HostRequest =
   | { type: "GET_SELECTION" }
   | { type: "CREATE_BASIC_ASSETS" }
   | { type: "CREATE_FORM_ASSETS" }
+  | { type: "INSERT_COMPONENT_INSTANCE"; assetKey?: string | null }
   | {
       type: "SAVE_METADATA";
       component: XuiComponent;
@@ -78,6 +79,13 @@ export type PluginMessage =
       type: "FORM_ASSETS_CREATED";
       assets: LibraryComponentSummary[];
       createdAssetNames: string[];
+    }
+  | {
+      type: "COMPONENT_INSTANCE_INSERTED";
+      selection: SelectionShapeSummary[];
+      assets: LibraryComponentSummary[];
+      selectedAssetKey: string | null;
+      componentName: string;
     }
   | {
       type: "EXPORT_RESULT";

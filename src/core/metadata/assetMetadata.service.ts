@@ -47,6 +47,8 @@ export function listLibraryComponents(): LibraryComponentSummary[] {
       }),
     )
     .sort((left, right) => {
+      const pathOrder = left.path.localeCompare(right.path);
+      if (pathOrder) return pathOrder;
       const nameOrder = left.name.localeCompare(right.name);
       return nameOrder || left.assetKey.localeCompare(right.assetKey);
     });

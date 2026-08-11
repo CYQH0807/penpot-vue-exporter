@@ -59,6 +59,26 @@ Pages 发布使用 Actions artifact，不依赖仓库里的 `dist` 或 `release`
 
 ## 二、Penpot 的团队与项目
 
+### 本地组件库分组
+
+插件维护的组件源按以下路径组织，业务页面使用从素材库插入的组件实例：
+
+```text
+BRMS/Basic/Button
+BRMS/Basic/Input
+BRMS/Basic/FieldGroup
+BRMS/Form/Input
+BRMS/Form/Select
+BRMS/Form/DatePicker
+BRMS/Data/DataTable
+BRMS/Data/Pager
+BRMS/Data/RecordSetHeader
+BRMS/Data/TableSelect
+BRMS/Data/TableToolbar
+```
+
+“创建基础组件”和“创建 Form 组件”只负责创建或维护组件源；“插入实例到画布”才会把链接实例放到当前页面。
+
 Penpot 有 Team、Project、File 三层协作结构。推荐为这套组件建立一个团队内的共享库：
 
 1. 在目标 Team 下创建项目，例如 `BRMS Design System`。
