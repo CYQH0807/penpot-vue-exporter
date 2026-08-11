@@ -354,4 +354,4 @@ function handleRequest(message: HostRequest): void {
 
 penpot.ui.onMessage<HostRequest>(handleRequest);
 penpot.on("selectionchange", () => sendSelection());
-penpot.ui.open(PLUGIN_NAME, "", { width: UI_WIDTH, height: UI_HEIGHT });
+penpot.ui.open(PLUGIN_NAME, "index.html", { width: UI_WIDTH, height: UI_HEIGHT });

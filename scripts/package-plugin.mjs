@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,7 +12,14 @@ const distributionDirectory = resolve(
   `penpot-vue-exporter-v${packageJson.version}`,
 );
 const buildDirectory = resolve(repositoryRoot, "dist");
-const requiredFiles = ["manifest.json", "plugin.js", "icon.svg", "_headers"];
+const requiredFiles = [
+  "manifest.json",
+  "plugin.js",
+  "icon.svg",
+  "_headers",
+  "index.html",
+];
+const requiredDirectories = ["assets"];
 
 /** Ensures the production build contains every file referenced by the manifest. */
 async function validateBuild() {
@@ -22,6 +29,13 @@ async function validateBuild() {
 
   for (const file of requiredFiles) {
     await readFile(resolve(buildDirectory, file));
+  }
+
+  for (const directory of requiredDirectories) {
+    const entries = await readdir(resolve(buildDirectory, directory));
+    if (entries.length === 0) {
+      throw new Error(`Build directory is empty: ${directory}`);
+    }
   }
 
   for (const referencedFile of [manifest.code, manifest.icon]) {
@@ -36,6 +50,14 @@ async function createDistribution() {
 
   for (const file of requiredFiles) {
     await cp(resolve(buildDirectory, file), resolve(distributionDirectory, file));
+  }
+
+  for (const directory of requiredDirectories) {
+    await cp(
+      resolve(buildDirectory, directory),
+      resolve(distributionDirectory, directory),
+      { recursive: true },
+    );
   }
 
   const handoffGuide = `# Penpot Vue Exporter v${packageJson.version}

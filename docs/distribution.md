@@ -22,6 +22,8 @@ pnpm package:plugin
 release/penpot-vue-exporter-v<package-version>/
 ├── manifest.json
 ├── plugin.js
+├── index.html
+├── assets/                # Vue iframe 的脚本和样式
 ├── icon.svg
 ├── _headers
 └── README.md

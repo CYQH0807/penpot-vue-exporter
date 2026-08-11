@@ -4,6 +4,7 @@ import vue from "@vitejs/plugin-vue";
 
 export default defineConfig({
   plugins: [vue()],
+  base: "./",
   build:
     process.env.VITE_BUILD_TARGET === "plugin"
       ? {
