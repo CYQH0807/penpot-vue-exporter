@@ -360,7 +360,7 @@ function wrapWithClass(content: string, className: string, level: number): strin
 /** Renders the shared v-model and placeholder attributes for a Form control. */
 function renderFormControl(
   tag: string,
-  props: { model: string; prop: string; placeholder?: string },
+  props: { model: string; prop: string; placeholder?: string; codeSet?: string },
   extraAttributes = "",
 ): string {
   const model = toIdentifier(props.model, "query");
@@ -369,7 +369,10 @@ function renderFormControl(
   const placeholder = props.placeholder
     ? ` placeholder="${escapeHtml(props.placeholder)}"`
     : "";
-  return `<${tag} v-model="${binding}"${placeholder}${extraAttributes} />`;
+  const codeSet = props.codeSet?.trim()
+    ? ` codeSet="${escapeHtml(props.codeSet.trim())}"`
+    : "";
+  return `<${tag} v-model="${binding}"${placeholder}${codeSet}${extraAttributes} />`;
 }
 
 /** Reads visible text captured from a Penpot text shape. */
@@ -395,6 +398,7 @@ interface InferredField {
   prop: string;
   label: string;
   placeholder?: string;
+  codeSet?: string;
   control: "input" | "select" | "date";
 }
 
@@ -405,6 +409,19 @@ function inferControlType(
   surfaceNode: IRNode | undefined,
   controlDescendants: IRNode[],
 ): InferredField["control"] | null {
+  const semanticControl = [controlNode, ...controlDescendants].find(
+    (node): node is IRComponentNode => node?.nodeType === "component",
+  );
+  if (semanticControl) {
+    if (semanticControl.component === "XFormSelect") return "select";
+    if (
+      semanticControl.component === "XInput" &&
+      (semanticControl.props as XInputProps).controlType === "select"
+    ) {
+      return "select";
+    }
+  }
+
   const surfacePrefix = surfaceNode?.name.split(".")[0].toLowerCase();
   if (surfacePrefix === "select") return "select";
   if (surfacePrefix === "date") return "date";
@@ -418,6 +435,27 @@ function inferControlType(
   }
 
   return controlNode ? "input" : null;
+}
+
+/** Reads a codeSet configured on a semantic Select control node. */
+function readInferredCodeSet(controlDescendants: IRNode[]): string | undefined {
+  const controlNode = controlDescendants.find(
+    (node): node is IRComponentNode => node.nodeType === "component",
+  );
+  if (!controlNode) return undefined;
+
+  if (controlNode.component === "XFormSelect") {
+    const codeSet = (controlNode.props as XFormSelectProps).codeSet;
+    return codeSet?.trim() || undefined;
+  }
+
+  if (controlNode.component === "XInput" &&
+    (controlNode.props as XInputProps).controlType === "select") {
+    const codeSet = (controlNode.props as XInputProps).codeSet;
+    return codeSet?.trim() || undefined;
+  }
+
+  return undefined;
 }
 
 /** Infers a basic form field from the project's layer naming convention. */
@@ -452,6 +490,7 @@ function inferField(node: IRNode): InferredField | null {
     prop: toIdentifier(fieldSuffix, "field"),
     label: readNodeText(labelNode) || fieldSuffix,
     placeholder: placeholderNode ? readNodeText(placeholderNode) || undefined : undefined,
+    codeSet: readInferredCodeSet(controlDescendants),
     control,
   };
 }
@@ -472,7 +511,12 @@ function renderInferredField(
   const extraAttributes = field.control === "date" ? ' type="date"' : "";
   const control = renderFormControl(
     tag,
-    { model: field.model, prop: field.prop, placeholder: field.placeholder },
+    {
+      model: field.model,
+      prop: field.prop,
+      placeholder: field.placeholder,
+      codeSet: field.codeSet,
+    },
     extraAttributes,
   );
 
@@ -531,8 +575,11 @@ function renderComponent(
     const placeholder = props.placeholder
       ? ` placeholder="${escapeHtml(props.placeholder)}"`
       : "";
+    const codeSet = props.codeSet?.trim()
+      ? ` codeSet="${escapeHtml(props.codeSet.trim())}"`
+      : "";
     const tag = props.controlType === "select" ? `${prefix}Select` : `${prefix}Input`;
-    return indent(`<${tag} v-model="${binding}"${placeholder} />`, level);
+    return indent(`<${tag} v-model="${binding}"${placeholder}${codeSet} />`, level);
   }
 
   if (node.component === "XFormInput") {

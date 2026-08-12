@@ -188,6 +188,7 @@ const sampleDocument: IRDocument = {
           model: "form",
           prop: "status",
           placeholder: "请选择状态",
+          codeSet: "BRMS.STATUS",
           options: [{ label: "启用", value: "enabled" }],
         },
         source: {
@@ -238,11 +239,51 @@ test("generates Vue markup and bindings from IR", () => {
   assert.match(output, /<XInput v-model="query.keyword" placeholder="请输入" \/>/);
   assert.match(output, /<XInput v-model="form.keyword" placeholder="请输入关键词" clearable \/>/);
   assert.match(output, /<XSelect v-model="form.status" placeholder="请选择状态"/);
+  assert.match(output, /<XSelect v-model="form.status" placeholder="请选择状态" codeSet="BRMS.STATUS"/);
   assert.match(output, /<XDatePicker v-model="form.date" placeholder="请选择日期" type="date" value-format="YYYY-MM-DD" \/>/);
   assert.match(output, /const form = reactive<Record<string, unknown>>\(\{\}\);/);
   assert.match(output, /const query = reactive<Record<string, unknown>>\(\{\}\);/);
   assert.match(output, /function handleSearch\(\)/);
   assert.doesNotMatch(output, /penpot\./i);
+});
+
+test("preserves codeSet when a Select is inferred from a marked control", () => {
+  const inferredDocument: IRDocument = {
+    ...sampleDocument,
+    tree: {
+      ...sampleDocument.tree,
+      children: [
+        createNestedFieldFixture("shippingType", "发货类型", [
+          {
+            id: "shipping-type-control",
+            name: "control.shippingType",
+            nodeType: "component",
+            component: "XFormSelect",
+            props: {
+              model: "form",
+              prop: "shippingType",
+              codeSet: "BRMS.SHIPPING_TYPE",
+            },
+            source: {
+              shapeId: "shipping-type-control",
+              shapeType: "board",
+              parentId: "shippingType-control",
+              x: 0,
+              y: 24,
+              width: 240,
+              height: 34,
+            },
+            children: [],
+          },
+        ]),
+      ],
+    },
+  };
+
+  const output = generateVueSfc(inferredDocument);
+
+  assert.match(output, /<XFormItem label="发货类型" prop="shippingType">/);
+  assert.match(output, /<XSelect v-model="form.shippingType" codeSet="BRMS.SHIPPING_TYPE" \/>/);
 });
 
 test("generates Flex CSS and layout item wrappers from IR", () => {

@@ -38,6 +38,7 @@ export interface XInputProps {
   prop: string;
   controlType?: XInputControlType;
   placeholder?: string;
+  codeSet?: string;
   options?: XInputOption[];
 }
 
@@ -62,6 +63,7 @@ export interface XFormSelectOption {
 /** Describes an Element Plus select control exported from a Penpot Form asset. */
 export interface XFormSelectProps extends XFormControlProps {
   clearable?: boolean;
+  codeSet?: string;
   options?: XFormSelectOption[];
 }
 

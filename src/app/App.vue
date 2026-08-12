@@ -2,6 +2,10 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { generateVueSfc } from "../../generator/vueGenerator";
 import {
+  isFormSelectAsset,
+  isSelectMetadata,
+} from "../core/metadata/selectConfig.service";
+import {
   SUPPORTED_XUI_COMPONENTS,
   XUI_SCHEMA_VERSION,
   type LibraryComponentSummary,
@@ -23,6 +27,7 @@ const propsText = ref(defaultPropsText("XButton"));
 const selection = ref<SelectionShapeSummary[]>([]);
 const assets = ref<LibraryComponentSummary[]>([]);
 const activeAssetKey = ref("");
+const selectCodeSet = ref("");
 const successMessage = ref("");
 const vueSource = ref("");
 const vueFileName = ref("penpot-export.vue");
@@ -36,6 +41,17 @@ const selectedAsset = computed(
   () => assets.value.find((asset) => asset.assetKey === activeAssetKey.value) ?? null,
 );
 const hasAssetTarget = computed(() => Boolean(selectedAsset.value));
+const isSelectSelection = computed(() => {
+  if (selection.value.length !== 1) return false;
+
+  const metadata = primarySelection.value?.metadata ?? null;
+  if (metadata) return isSelectMetadata(metadata);
+  return Boolean(
+    primarySelection.value?.assetKey &&
+      primarySelection.value.assetKey === activeAssetKey.value &&
+      isFormSelectAsset(selectedAsset.value),
+  );
+});
 
 /** Converts a Penpot root name into a safe default Vue filename. */
 function buildVueFileName(rootName: string): string {
@@ -111,10 +127,28 @@ function defaultPropsText(nextComponent: XuiComponent): string {
 /** Applies metadata from the selected asset or current selection to the marker form. */
 function syncFormFromTarget(): void {
   const metadata = selectedAsset.value?.metadata ?? primarySelection.value?.metadata;
-  if (!metadata) return;
+  if (!metadata) {
+    if (isSelectSelection.value) {
+      component.value = "XFormSelect";
+      propsText.value = defaultPropsText("XFormSelect");
+    }
+    return;
+  }
 
   component.value = metadata.component;
   propsText.value = JSON.stringify(metadata.props, null, 2);
+}
+
+/** Loads the direct codeSet value for the selected Select instance. */
+function syncSelectCodeSet(): void {
+  if (!isSelectSelection.value) {
+    selectCodeSet.value = "";
+    return;
+  }
+
+  const props = primarySelection.value?.metadata?.props;
+  const codeSet = props && "codeSet" in props ? props.codeSet : undefined;
+  selectCodeSet.value = typeof codeSet === "string" ? codeSet : "";
 }
 
 /** Applies the host's selection and asset catalog state to the plugin UI. */
@@ -133,6 +167,7 @@ function applyAssetState(
   }
 
   syncFormFromTarget();
+  syncSelectCodeSet();
 }
 
 /** Handles messages emitted by the Penpot plugin host. */
@@ -146,6 +181,13 @@ function handlePluginMessage(message: PluginMessage): void {
       return;
     case "METADATA_SAVED":
       applyAssetState(message.selection, message.assets, message.selectedAssetKey);
+      return;
+    case "SELECT_CONFIG_SAVED":
+      applyAssetState(message.selection, message.assets, message.selectedAssetKey);
+      selectCodeSet.value = message.codeSet;
+      successMessage.value = message.codeSet
+        ? `已保存当前 Select 实例的 codeSets：${message.codeSet}`
+        : "已清除当前 Select 实例的 codeSets。";
       return;
     case "BASIC_ASSETS_CREATED":
       assets.value = message.assets;
@@ -225,6 +267,20 @@ function saveMetadata(): void {
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : "Props JSON 无效。";
   }
+}
+
+/** Stores codeSet on the current Select Shape instead of its shared asset. */
+function saveSelectConfig(): void {
+  errorMessage.value = "";
+  if (!isSelectSelection.value) {
+    errorMessage.value = "请先在画布中选中一个 Select 组件。";
+    return;
+  }
+
+  sendPluginRequest({
+    type: "SAVE_SELECT_CONFIG",
+    codeSet: selectCodeSet.value,
+  });
 }
 
 /** Clears xui metadata from the selected component asset. */
@@ -348,18 +404,35 @@ onBeforeUnmount(() => unsubscribe?.());
         </article>
       </div>
 
-      <label class="field-label" for="component">导出组件类型</label>
-      <select id="component" v-model="component" @change="onComponentChange">
-        <option v-for="item in SUPPORTED_XUI_COMPONENTS" :key="item" :value="item">{{ item }}</option>
-      </select>
+      <section v-if="isSelectSelection" class="select-config-panel">
+        <div>
+          <label class="field-label" for="codeSets">codeSets</label>
+          <p class="field-help">仅写入当前选中的 Select 图层，不会修改共享素材。</p>
+        </div>
+        <input
+          id="codeSets"
+          v-model="selectCodeSet"
+          class="text-input"
+          placeholder="例如：BRMS.BF.shippingType"
+          @keyup.enter="saveSelectConfig"
+        >
+        <button class="primary" @click="saveSelectConfig">保存当前 Select 配置</button>
+      </section>
 
-      <label class="field-label" for="props">Props JSON</label>
-      <textarea id="props" v-model="propsText" spellcheck="false" rows="12" />
+      <template v-else>
+        <label class="field-label" for="component">导出组件类型</label>
+        <select id="component" v-model="component" @change="onComponentChange">
+          <option v-for="item in SUPPORTED_XUI_COMPONENTS" :key="item" :value="item">{{ item }}</option>
+        </select>
 
-      <div class="actions">
-        <button class="primary" :disabled="!hasAssetTarget" @click="saveMetadata">保存到素材</button>
-        <button class="secondary" :disabled="!hasAssetTarget" @click="removeMetadata">清除素材标记</button>
-      </div>
+        <label class="field-label" for="props">Props JSON</label>
+        <textarea id="props" v-model="propsText" spellcheck="false" rows="12" />
+
+        <div class="actions">
+          <button class="primary" :disabled="!hasAssetTarget" @click="saveMetadata">保存到素材</button>
+          <button class="secondary" :disabled="!hasAssetTarget" @click="removeMetadata">清除素材标记</button>
+        </div>
+      </template>
     </section>
 
     <section v-else-if="activeTab === 'export'" class="panel">

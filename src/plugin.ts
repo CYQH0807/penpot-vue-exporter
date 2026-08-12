@@ -11,6 +11,7 @@ import {
   resolveLibraryComponent,
   writeLibraryComponentMetadata,
 } from "./core/metadata/assetMetadata.service";
+import { saveSelectCodeSet } from "./core/metadata/selectConfig.service";
 import { parsePenpotSelection } from "./core/parser/penpotParser";
 import { summarizeShape } from "./core/penpot/shapeInfo";
 import type {
@@ -40,8 +41,8 @@ interface AssetCreationResult {
 }
 
 /** Normalizes Penpot library paths before comparing component source locations. */
-function normalizeLibraryPath(path: string): string {
-  return path
+function normalizeLibraryPath(path: string | null | undefined): string {
+  return (path ?? "")
     .split("/")
     .map((segment) => segment.trim())
     .filter(Boolean)
@@ -381,6 +382,24 @@ function getSelectedRoot(): Shape | null {
   return root;
 }
 
+/** Saves codeSet directly on the selected Select Shape and keeps the asset untouched. */
+function saveSelectedSelectConfig(rawCodeSet: string): void {
+  if (penpot.selection.length !== 1) {
+    sendError("请只选择一个 Select 组件图层。");
+    return;
+  }
+
+  const codeSet = saveSelectCodeSet(penpot.selection[0], rawCodeSet);
+  const selectedAsset = resolveLibraryComponent(penpot.selection[0]);
+  penpot.ui.sendMessage({
+    type: "SELECT_CONFIG_SAVED",
+    selection: penpot.selection.map(summarizeShape),
+    assets: listLibraryComponents(),
+    selectedAssetKey: selectedAsset ? getLibraryComponentKey(selectedAsset) : null,
+    codeSet,
+  });
+}
+
 /** Resolves an explicitly chosen asset or the asset represented by the current selection. */
 function getTargetAsset(assetKey: string | null | undefined): LibraryComponent | null {
   if (assetKey) return findLibraryComponent(assetKey);
@@ -454,6 +473,9 @@ function handleRequest(message: HostRequest): void {
         sendSelection("METADATA_SAVED");
         return;
       }
+      case "SAVE_SELECT_CONFIG":
+        saveSelectedSelectConfig(message.codeSet);
+        return;
       case "REMOVE_METADATA":
         {
           const targetAsset = getTargetAsset(message.assetKey);

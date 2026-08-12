@@ -34,6 +34,7 @@ export type HostRequest =
       props: XuiProps;
       assetKey?: string | null;
     }
+  | { type: "SAVE_SELECT_CONFIG"; codeSet: string }
   | { type: "REMOVE_METADATA"; assetKey?: string | null }
   | { type: "EXPORT_SELECTION" }
   | { type: "CLOSE_PLUGIN" };
@@ -50,6 +51,13 @@ export type PluginMessage =
       selection: SelectionShapeSummary[];
       assets: LibraryComponentSummary[];
       selectedAssetKey: string | null;
+    }
+  | {
+      type: "SELECT_CONFIG_SAVED";
+      selection: SelectionShapeSummary[];
+      assets: LibraryComponentSummary[];
+      selectedAssetKey: string | null;
+      codeSet: string;
     }
   | {
       type: "BASIC_ASSETS_CREATED";

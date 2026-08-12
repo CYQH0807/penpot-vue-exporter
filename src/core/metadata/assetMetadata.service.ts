@@ -23,6 +23,15 @@ function getLibraryEntries(): LibraryEntry[] {
   ];
 }
 
+/** Normalizes a library path for component-name and source matching. */
+export function normalizeLibraryPath(path: string | null | undefined): string {
+  return (path ?? "")
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .join("/");
+}
+
 /** Builds a stable key for a component across local and connected libraries. */
 export function getLibraryComponentKey(component: LibraryComponent): string {
   return `${component.libraryId}:${component.id}`;
@@ -47,9 +56,9 @@ export function listLibraryComponents(): LibraryComponentSummary[] {
       }),
     )
     .sort((left, right) => {
-      const pathOrder = left.path.localeCompare(right.path);
+      const pathOrder = (left.path ?? "").localeCompare(right.path ?? "");
       if (pathOrder) return pathOrder;
-      const nameOrder = left.name.localeCompare(right.name);
+      const nameOrder = (left.name ?? "").localeCompare(right.name ?? "");
       return nameOrder || left.assetKey.localeCompare(right.assetKey);
     });
 }
