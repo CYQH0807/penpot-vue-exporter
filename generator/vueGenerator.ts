@@ -102,6 +102,7 @@ function cssColor(paint: IRPaint | undefined): string | null {
 function cssTextLength(value: string | undefined, property: "font-size" | "line-height" | "letter-spacing"): string | null {
   if (!value || value === "mixed") return null;
   if (value === "auto") return property === "line-height" ? "normal" : null;
+  if (property === "line-height" && /^\d*\.\d+$/.test(value)) return value;
   return /^-?(?:\d+\.?\d*|\.\d+)$/.test(value) ? `${value}px` : value;
 }
 
@@ -305,13 +306,14 @@ function registerStructureStyle(node: IRContainerNode, context: RenderContext): 
       "position: relative;",
       `width: ${px(node.source.width)};`,
       `height: ${px(node.source.height)};`,
+      "flex: 0 0 auto;",
       ...buildVisualStyleDeclarations(node.source.style),
     ]));
   }
   return className;
 }
 
-/** Registers absolute geometry for an unmarked leaf inside a freeform container. */
+/** Registers absolute geometry for any child inside a freeform container. */
 function registerFreeformNodeStyle(
   node: IRNode,
   parent: IRNode,
@@ -485,14 +487,11 @@ function renderInferredField(
 function renderGenericLeaf(
   node: IRNode,
   level: number,
-  parent: IRNode | undefined,
   context: RenderContext,
+  parent?: IRNode,
 ): string {
-  const geometryClassName = parent && !parent.layout
-    ? registerFreeformNodeStyle(node, parent, context)
-    : null;
   const visualClassName = parent?.layout ? registerVisualStyle(node, context) : null;
-  const classNames = [geometryClassName, visualClassName].filter(Boolean).join(" ");
+  const classNames = [visualClassName].filter(Boolean).join(" ");
   const classAttribute = classNames ? ` class="${classNames}"` : "";
 
   if (node.source.shapeType === "text") {
@@ -625,7 +624,11 @@ function renderNode(
   context: RenderContext,
   parent?: IRNode,
 ): string {
-  const itemClass = parent ? registerLayoutChildStyle(node, parent, context) : null;
+  const itemClass = parent
+    ? parent.layout
+      ? registerLayoutChildStyle(node, parent, context)
+      : registerFreeformNodeStyle(node, parent, context)
+    : null;
   let content: string;
 
   if (node.nodeType === "component") {
@@ -639,7 +642,7 @@ function renderNode(
       .join("\n");
     content = `${indent(`<div class="${className}">`, level)}\n${children}\n${indent("</div>", level)}`;
   } else if (node.children.length === 0) {
-    content = renderGenericLeaf(node, level, parent, context);
+    content = renderGenericLeaf(node, level, context, parent);
   } else {
     const className = registerStructureStyle(node, context);
     const children = node.children

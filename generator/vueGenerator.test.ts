@@ -367,6 +367,91 @@ test("generates visual CSS for unmarked containers and text", () => {
   assert.match(output, /line-height: 24px;/);
 });
 
+test("keeps unitless Penpot line-height values unitless", () => {
+  const output = generateVueSfc({
+    ...sampleDocument,
+    tree: {
+      ...sampleDocument.tree,
+      children: [
+        {
+          id: "text-line-height",
+          name: "title",
+          nodeType: "container",
+          source: {
+            shapeId: "text-line-height",
+            shapeType: "text",
+            parentId: "root-1",
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 24,
+            text: "标题",
+            style: { text: { lineHeight: "1.2" } },
+          },
+          children: [],
+        },
+      ],
+    },
+  });
+
+  assert.match(output, /line-height: 1\.2;/);
+  assert.doesNotMatch(output, /line-height: 1\.2px;/);
+});
+
+test("positions components and containers inside a freeform parent", () => {
+  const freeformDocument: IRDocument = {
+    ...sampleDocument,
+    tree: {
+      ...sampleDocument.tree,
+      source: {
+        ...sampleDocument.tree.source,
+        width: 1276,
+        height: 1450,
+      },
+      children: [
+        {
+          id: "status-1",
+          name: "status",
+          nodeType: "component",
+          component: "XButton",
+          props: { text: "履行中", type: "primary" },
+          source: {
+            shapeId: "status-1",
+            shapeType: "board",
+            parentId: "root-1",
+            x: 1165,
+            y: 36,
+            width: 76,
+            height: 26,
+          },
+          children: [],
+        },
+        {
+          id: "panel-1",
+          name: "panel",
+          nodeType: "container",
+          source: {
+            shapeId: "panel-1",
+            shapeType: "board",
+            parentId: "root-1",
+            x: 30,
+            y: 134,
+            width: 1216,
+            height: 260,
+          },
+          children: [],
+        },
+      ],
+    },
+  };
+
+  const output = generateVueSfc(freeformDocument);
+
+  assert.match(output, /position: relative;[\s\S]*flex: 0 0 auto;/);
+  assert.match(output, /position: absolute;[\s\S]*left: 1165px;[\s\S]*top: 36px;/);
+  assert.match(output, /position: absolute;[\s\S]*left: 30px;[\s\S]*top: 134px;/);
+});
+
 test("renders unmarked text and conventional input layers", () => {
   const fieldDocument: IRDocument = {
     ...sampleDocument,
