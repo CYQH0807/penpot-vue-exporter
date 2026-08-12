@@ -40,6 +40,59 @@ export type IRShapeType =
   | "svg-raw"
   | "image";
 
+export interface IRPaint {
+  color: string;
+  opacity: number;
+}
+
+export type IRStrokeStyle = "solid" | "dotted" | "dashed";
+
+export interface IRStroke {
+  color: string;
+  opacity: number;
+  width: number;
+  style: IRStrokeStyle;
+}
+
+export interface IRShadow {
+  style: "drop-shadow" | "inner-shadow";
+  offsetX: number;
+  offsetY: number;
+  blur: number;
+  spread: number;
+  color: string;
+  opacity: number;
+}
+
+export interface IRTextStyle {
+  color?: IRPaint;
+  fontFamily?: string;
+  fontSize?: string;
+  fontWeight?: string;
+  fontStyle?: "normal" | "italic";
+  lineHeight?: string;
+  letterSpacing?: string;
+  textTransform?: "uppercase" | "capitalize" | "lowercase";
+  textDecoration?: "underline" | "line-through";
+  align?: "left" | "center" | "right" | "justify";
+  verticalAlign?: "top" | "center" | "bottom";
+}
+
+export interface IRStyle {
+  opacity?: number;
+  fill?: IRPaint;
+  stroke?: IRStroke;
+  borderRadius?: {
+    topLeft: number;
+    topRight: number;
+    bottomRight: number;
+    bottomLeft: number;
+  };
+  shadow?: IRShadow;
+  blur?: number;
+  text?: IRTextStyle;
+}
+
 export interface IRDocumentSource {
   type: "penpot";
   fileId: string | null;
@@ -55,6 +108,8 @@ export interface IRShapeSource {
   y: number;
   width: number;
   height: number;
+  text?: string;
+  style?: IRStyle;
 }
 
 export interface IRPadding {

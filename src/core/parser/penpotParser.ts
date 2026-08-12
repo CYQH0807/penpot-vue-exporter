@@ -10,6 +10,11 @@ import {
   type IRNode,
   type IRShapeType,
   type IRShapeSource,
+  type IRPaint,
+  type IRShadow,
+  type IRStyle,
+  type IRStroke,
+  type IRTextStyle,
 } from "../ir/ir.types";
 
 export interface ParserDiagnostic {
@@ -29,8 +34,136 @@ function toIRShapeType(shape: Shape): IRShapeType {
   return shape.type as IRShapeType;
 }
 
+/** Reads the first solid paint that can be represented in generated CSS. */
+function readSolidPaint(
+  fills: Shape["fills"] | undefined,
+): IRPaint | undefined {
+  if (!Array.isArray(fills)) return undefined;
+
+  const fill = fills.find((candidate) => typeof candidate.fillColor === "string");
+  if (!fill?.fillColor) return undefined;
+
+  return {
+    color: fill.fillColor,
+    opacity: fill.fillOpacity ?? 1,
+  };
+}
+
+/** Reads the first CSS-compatible stroke from a Penpot shape. */
+function readStroke(strokes: Shape["strokes"] | undefined): IRStroke | undefined {
+  if (!Array.isArray(strokes)) return undefined;
+
+  const stroke = strokes.find(
+    (candidate) =>
+      typeof candidate.strokeColor === "string" &&
+      candidate.strokeStyle !== "none",
+  );
+  if (!stroke?.strokeColor) return undefined;
+
+  const style = stroke.strokeStyle;
+  return {
+    color: stroke.strokeColor,
+    opacity: stroke.strokeOpacity ?? 1,
+    width: stroke.strokeWidth ?? 1,
+    style: style === "dotted" || style === "dashed" ? style : "solid",
+  };
+}
+
+/** Reads a visible Penpot shadow into a serializable IR shadow. */
+function readShadow(shadows: Shape["shadows"] | undefined): IRShadow | undefined {
+  if (!Array.isArray(shadows)) return undefined;
+
+  const shadow = shadows.find(
+    (candidate) => !candidate.hidden && typeof candidate.color?.color === "string",
+  );
+  if (!shadow?.color?.color) return undefined;
+
+  return {
+    style: shadow.style === "inner-shadow" ? "inner-shadow" : "drop-shadow",
+    offsetX: shadow.offsetX ?? 0,
+    offsetY: shadow.offsetY ?? 0,
+    blur: shadow.blur ?? 0,
+    spread: shadow.spread ?? 0,
+    color: shadow.color.color,
+    opacity: shadow.color.opacity ?? 1,
+  };
+}
+
+/** Keeps a text property only when Penpot provides one unambiguously. */
+function readTextValue(value: string | "mixed" | null | undefined): string | undefined {
+  return value && value !== "mixed" ? value : undefined;
+}
+
+/** Builds the visual style subset needed by the Vue generator. */
+function buildShapeStyle(shape: Shape): IRStyle | undefined {
+  const style: IRStyle = {};
+  const isText = shape.type === "text";
+  const fill = isText ? undefined : readSolidPaint(shape.fills);
+  const stroke = isText ? undefined : readStroke(shape.strokes);
+  const shadow = readShadow(shape.shadows);
+  const radiusValues = [
+    shape.borderRadiusTopLeft,
+    shape.borderRadiusTopRight,
+    shape.borderRadiusBottomRight,
+    shape.borderRadiusBottomLeft,
+  ];
+
+  if (typeof shape.opacity === "number" && shape.opacity !== 1) {
+    style.opacity = shape.opacity;
+  }
+  if (fill) style.fill = fill;
+  if (stroke) style.stroke = stroke;
+  if (radiusValues.every((value) => typeof value === "number")) {
+    const [topLeft, topRight, bottomRight, bottomLeft] = radiusValues as number[];
+    if (topLeft || topRight || bottomRight || bottomLeft) {
+      style.borderRadius = { topLeft, topRight, bottomRight, bottomLeft };
+    }
+  }
+  if (shadow) style.shadow = shadow;
+  if (shape.blur?.value && shape.blur.value > 0) style.blur = shape.blur.value;
+
+  if (isText) {
+    const textStyle: IRTextStyle = {
+      color: readSolidPaint(shape.fills),
+      fontFamily: readTextValue(shape.fontFamily),
+      fontSize: readTextValue(shape.fontSize),
+      fontWeight: readTextValue(shape.fontWeight),
+      fontStyle: shape.fontStyle === "normal" || shape.fontStyle === "italic"
+        ? shape.fontStyle
+        : undefined,
+      lineHeight: readTextValue(shape.lineHeight),
+      letterSpacing: readTextValue(shape.letterSpacing),
+      textTransform: shape.textTransform === "uppercase" ||
+        shape.textTransform === "capitalize" ||
+        shape.textTransform === "lowercase"
+        ? shape.textTransform
+        : undefined,
+      textDecoration: shape.textDecoration === "underline" ||
+        shape.textDecoration === "line-through"
+        ? shape.textDecoration
+        : undefined,
+      align: shape.align === "left" || shape.align === "center" ||
+        shape.align === "right" || shape.align === "justify"
+        ? shape.align
+        : undefined,
+      verticalAlign: shape.verticalAlign === "top" ||
+        shape.verticalAlign === "center" ||
+        shape.verticalAlign === "bottom"
+        ? shape.verticalAlign
+        : undefined,
+    };
+    const textEntries = Object.entries(textStyle).filter(([, value]) => value !== undefined);
+    if (textEntries.length) style.text = Object.fromEntries(textEntries) as IRTextStyle;
+  }
+
+  return Object.keys(style).length ? style : undefined;
+}
+
 /** Copies only stable source geometry into the IR for later diagnostics. */
 function buildSourceInfo(shape: Shape): IRShapeSource {
+  const text = shape.type === "text" ? shape.characters : undefined;
+  const style = buildShapeStyle(shape);
+
   return {
     shapeId: shape.id,
     shapeType: toIRShapeType(shape),
@@ -39,6 +172,8 @@ function buildSourceInfo(shape: Shape): IRShapeSource {
     y: shape.y,
     width: shape.width,
     height: shape.height,
+    ...(text !== undefined ? { text } : {}),
+    ...(style ? { style } : {}),
   };
 }
 
@@ -160,8 +295,8 @@ function getOrderedChildren(shape: Shape): Shape[] {
   });
 }
 
-/** Recursively converts one marked shape or a container of marked descendants. */
-function parseShape(shape: Shape, diagnostics: ParserDiagnostic[]): IRNode | null {
+/** Recursively converts one shape, keeping unmarked nodes as structural IR nodes. */
+function parseShape(shape: Shape, diagnostics: ParserDiagnostic[]): IRNode {
   const metadataResult = readEffectiveXuiMetadata(shape);
   if (metadataResult.error) {
     diagnostics.push({
@@ -172,9 +307,7 @@ function parseShape(shape: Shape, diagnostics: ParserDiagnostic[]): IRNode | nul
     });
   }
 
-  const children = getOrderedChildren(shape)
-    .map((child) => parseShape(child, diagnostics))
-    .filter((child): child is IRNode => child !== null);
+  const children = getOrderedChildren(shape).map((child) => parseShape(child, diagnostics));
   const layout = buildLayout(shape);
   const layoutChild = buildLayoutChild(shape);
   const layoutFields = {
@@ -195,18 +328,14 @@ function parseShape(shape: Shape, diagnostics: ParserDiagnostic[]): IRNode | nul
     };
   }
 
-  if (children.length > 0) {
-    return {
-      id: shape.id,
-      name: shape.name,
-      nodeType: "container",
-      source: buildSourceInfo(shape),
-      ...layoutFields,
-      children,
-    };
-  }
-
-  return null;
+  return {
+    id: shape.id,
+    name: shape.name,
+    nodeType: "container",
+    source: buildSourceInfo(shape),
+    ...layoutFields,
+    children,
+  };
 }
 
 /** Builds the exporter document from the selected Penpot root Shape. */
@@ -215,17 +344,7 @@ export function parsePenpotSelection(
   source: { fileId: string | null; pageId: string | null },
 ): ParseResult {
   const diagnostics: ParserDiagnostic[] = [];
-  const parsedRoot = parseShape(root, diagnostics);
-  const tree =
-    parsedRoot ?? {
-      id: root.id,
-      name: root.name,
-      nodeType: "container" as const,
-      source: buildSourceInfo(root),
-      ...(buildLayout(root) ? { layout: buildLayout(root) } : {}),
-      ...(buildLayoutChild(root) ? { layoutChild: buildLayoutChild(root) } : {}),
-      children: [],
-    };
+  const tree = parseShape(root, diagnostics);
 
   return {
     document: {

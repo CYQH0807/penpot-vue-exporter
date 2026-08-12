@@ -58,4 +58,23 @@ IR 文档使用 `schemaVersion: "0.1"`，并保留 Penpot source 信息用于调
 }
 ```
 
-未标记且没有语义后代的普通视觉 Shape 不进入 IR；带 `xui` 的语义 Shape 优先作为组件节点保留。
+带 `xui` 的语义 Shape 优先作为组件节点保留；没有 `xui` 的普通 Shape 会作为 `nodeType: "container"` 保留，并通过 `source.shapeType` 区分原始 Penpot 节点类型。文本 Shape 会额外保留 `source.text`。`source.style` 会保存可安全转换为 CSS 的纯色填充、描边、圆角、阴影、透明度和文字属性；渐变、图片填充及复杂效果暂不进入 IR。
+
+示例：
+
+```json
+{
+  "shapeId": "panel-id",
+  "shapeType": "board",
+  "parentId": "page-id",
+  "x": 0,
+  "y": 0,
+  "width": 400,
+  "height": 200,
+  "style": {
+    "fill": { "color": "#FFFFFF", "opacity": 1 },
+    "stroke": { "color": "#E5E6EB", "opacity": 1, "width": 1, "style": "solid" },
+    "borderRadius": { "topLeft": 8, "topRight": 8, "bottomRight": 8, "bottomLeft": 8 }
+  }
+}
+```

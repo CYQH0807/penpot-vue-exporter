@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { generateVueSfc } from "../../generator/vueGenerator";
 import {
   SUPPORTED_XUI_COMPONENTS,
   XUI_SCHEMA_VERSION,
@@ -25,6 +26,8 @@ const assets = ref<LibraryComponentSummary[]>([]);
 const activeAssetKey = ref("");
 const successMessage = ref("");
 const exportJson = ref("");
+const vueSource = ref("");
+const vueFileName = ref("penpot-export.vue");
 const diagnostics = ref<string[]>([]);
 const debugShapes = ref<DebugShapeInfo[]>([]);
 const errorMessage = ref("");
@@ -36,6 +39,17 @@ const selectedAsset = computed(
   () => assets.value.find((asset) => asset.assetKey === activeAssetKey.value) ?? null,
 );
 const hasAssetTarget = computed(() => Boolean(selectedAsset.value));
+
+/** Converts a Penpot root name into a safe default Vue filename. */
+function buildVueFileName(rootName: string): string {
+  const safeName = rootName
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001F]+/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `${safeName || "penpot-export"}.vue`;
+}
 
 /** Formats a component name with its library group for unambiguous selection. */
 function displayAssetName(asset: LibraryComponentSummary): string {
@@ -138,15 +152,15 @@ function handlePluginMessage(message: PluginMessage): void {
       return;
     case "BASIC_ASSETS_CREATED":
       assets.value = message.assets;
-      successMessage.value = message.createdAssetNames.length
-        ? `已创建组件源：${message.createdAssetNames.join("、")}`
-        : "基础组件源已存在，无需重复创建。";
+      successMessage.value = [...message.createdAssetNames, ...message.updatedAssetNames].length
+        ? `已整理基础组件源：${[...message.createdAssetNames, ...message.updatedAssetNames].join("、")}`
+        : "基础组件源已存在且已完成标记。";
       return;
     case "FORM_ASSETS_CREATED":
       assets.value = message.assets;
-      successMessage.value = message.createdAssetNames.length
-        ? `已创建 Form 组件源：${message.createdAssetNames.join("、")}`
-        : "Form 组件源已存在，无需重复创建。";
+      successMessage.value = [...message.createdAssetNames, ...message.updatedAssetNames].length
+        ? `已整理 Form 组件源：${[...message.createdAssetNames, ...message.updatedAssetNames].join("、")}`
+        : "Form 组件源已存在且已完成标记。";
       return;
     case "COMPONENT_INSTANCE_INSERTED":
       applyAssetState(message.selection, message.assets, message.selectedAssetKey);
@@ -154,6 +168,8 @@ function handlePluginMessage(message: PluginMessage): void {
       return;
     case "EXPORT_RESULT":
       exportJson.value = message.json;
+      vueSource.value = generateVueSfc(message.document);
+      vueFileName.value = buildVueFileName(message.document.tree.name);
       diagnostics.value = message.diagnostics.map(
         (diagnostic) => `${diagnostic.shapeName}: ${diagnostic.message}`,
       );
@@ -174,7 +190,7 @@ function refreshSelection(): void {
   sendPluginRequest({ type: "GET_SELECTION" });
 }
 
-/** Creates the three starter assets in the current file's local library. */
+/** Creates the starter assets, including the semantic DataTable source, in the local library. */
 function createBasicAssets(): void {
   sendPluginRequest({ type: "CREATE_BASIC_ASSETS" });
 }
@@ -234,6 +250,19 @@ function exportSelection(): void {
   sendPluginRequest({ type: "EXPORT_SELECTION" });
 }
 
+/** Downloads the generated Vue SFC from the plugin iframe. */
+function downloadVueFile(): void {
+  if (!vueSource.value) return;
+
+  const blob = new Blob([vueSource.value], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = vueFileName.value;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 /** Requests bounded Shape diagnostics for API exploration. */
 function debugSelection(): void {
   sendPluginRequest({ type: "DEBUG_SELECTION" });
@@ -288,13 +317,13 @@ onBeforeUnmount(() => unsubscribe?.());
       <div class="panel-heading">
         <div>
           <h2>素材库标记</h2>
-          <p>维护组件源；业务页面请使用插入实例。</p>
+          <p>创建或整理组件源（含 DataTable）；业务页面请使用插入实例。</p>
         </div>
         <div class="heading-actions">
           <button class="secondary" @click="refreshSelection">刷新</button>
           <button class="primary" :disabled="!hasSelection" @click="exportSelection">导出 IR</button>
-          <button class="primary" @click="createBasicAssets">创建基础组件</button>
-          <button class="primary" @click="createFormAssets">创建 Form 组件</button>
+          <button class="primary" @click="createBasicAssets">创建/整理基础组件与表格</button>
+          <button class="primary" @click="createFormAssets">创建/整理 Form 组件</button>
         </div>
       </div>
 
@@ -350,10 +379,10 @@ onBeforeUnmount(() => unsubscribe?.());
     <section v-else-if="activeTab === 'export'" class="panel">
       <div class="panel-heading">
         <div>
-          <h2>导出 IR</h2>
-          <p>选择 Demo 根 Board，导出其中带 xui 标记的节点。</p>
+          <h2>导出 IR / Vue</h2>
+          <p>选择根 Board，导出 IR 并生成对应的 Vue SFC 文件。</p>
         </div>
-        <button class="primary" :disabled="!hasSelection" @click="exportSelection">导出 IR</button>
+        <button class="primary" :disabled="!hasSelection" @click="exportSelection">导出 IR + Vue</button>
       </div>
 
       <div v-if="exportJson" class="export-result">
@@ -361,6 +390,13 @@ onBeforeUnmount(() => unsubscribe?.());
         <div v-if="diagnostics.length" class="notice warning">
           <strong>解析提示</strong>
           <div v-for="diagnostic in diagnostics" :key="diagnostic">{{ diagnostic }}</div>
+        </div>
+        <div v-if="vueSource" class="vue-result">
+          <div class="artifact-heading">
+            <strong>{{ vueFileName }}</strong>
+            <button class="primary" @click="downloadVueFile">下载 Vue 文件</button>
+          </div>
+          <pre>{{ vueSource }}</pre>
         </div>
       </div>
       <div v-else class="empty-state">还没有导出结果。</div>

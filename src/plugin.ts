@@ -1,6 +1,7 @@
 import type { Board, LibraryComponent, Shape, Text } from "@penpot/plugin-types";
 import {
   createXuiMetadata,
+  readXuiMetadata,
 } from "./core/metadata/metadata.service";
 import {
   clearLibraryComponentMetadata,
@@ -13,6 +14,7 @@ import {
 import { parsePenpotSelection } from "./core/parser/penpotParser";
 import { buildDebugShapeInfo, summarizeShape } from "./core/penpot/shapeInfo";
 import type {
+  XTableProps,
   XuiComponent,
   XuiProps,
 } from "./core/metadata/metadata.types";
@@ -30,6 +32,20 @@ interface BasicAssetDefinition {
   props: XuiProps;
   width: number;
   height: number;
+}
+
+interface AssetCreationResult {
+  createdAssetNames: string[];
+  updatedAssetNames: string[];
+}
+
+/** Normalizes Penpot library paths before comparing component source locations. */
+function normalizeLibraryPath(path: string): string {
+  return path
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .join("/");
 }
 
 const BASIC_ASSET_DEFINITIONS: readonly BasicAssetDefinition[] = [
@@ -64,6 +80,24 @@ const BASIC_ASSET_DEFINITIONS: readonly BasicAssetDefinition[] = [
     props: { label: "查询条件", prop: "keyword" },
     width: 300,
     height: 76,
+  },
+  {
+    name: "BRMS DataTable",
+    libraryPath: "BRMS / Data",
+    label: "数据表格",
+    component: "XTable",
+    props: {
+      dataSource: "tableData",
+      columns: [
+        { label: "报表显示单位", prop: "reportUnit" },
+        { label: "组织机构", prop: "organization" },
+        { label: "顺序", prop: "order" },
+        { label: "法人单位", prop: "legalEntity" },
+        { label: "状态", prop: "status" },
+      ],
+    },
+    width: 1210,
+    height: 250,
   },
 ];
 
@@ -139,8 +173,64 @@ function appendAssetText(
   board.appendChild(text);
 }
 
+/** Adds a solid rectangle to a generated asset board. */
+function appendAssetRectangle(
+  board: Board,
+  name: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  color: string,
+): void {
+  const rectangle = penpot.createRectangle();
+  rectangle.name = name;
+  rectangle.x = x;
+  rectangle.y = y;
+  rectangle.resize(width, height);
+  rectangle.fills = [{ fillColor: color, fillOpacity: 1 }];
+  board.appendChild(rectangle);
+}
+
+/** Builds a table-shaped visual source for the semantic XTable asset. */
+function createTableAssetBoard(definition: BasicAssetDefinition): Board {
+  const board = penpot.createBoard();
+  const props = definition.props as XTableProps;
+  const columns = props.columns.length ? props.columns : [{ label: "数据", prop: "data" }];
+  const columnWidth = definition.width / columns.length;
+  const rowHeight = 34;
+
+  board.name = definition.name;
+  board.resize(definition.width, definition.height);
+  board.borderRadius = 4;
+  board.fills = [{ fillColor: "#FFFFFF", fillOpacity: 1 }];
+  board.strokes = [{
+    strokeColor: "#E5E6EB",
+    strokeOpacity: 1,
+    strokeStyle: "solid",
+    strokeWidth: 1,
+    strokeAlignment: "inner",
+  }];
+
+  columns.forEach((column, index) => {
+    const x = index * columnWidth;
+    appendAssetRectangle(board, `header.${column.prop}`, x, 0, columnWidth, 38, "#F5F6F8");
+    appendAssetText(board, column.label, x + 12, 10, "#1D2129");
+  });
+
+  for (let row = 1; row < Math.floor(definition.height / rowHeight); row += 1) {
+    appendAssetRectangle(board, `row.${row}`, 0, row * rowHeight, definition.width, 1, "#E5E6EB");
+  }
+
+  return board;
+}
+
 /** Builds the visual board used as the source shape for one basic asset. */
 function createBasicAssetBoard(definition: BasicAssetDefinition): Board {
+  if (definition.component === "XTable") {
+    return createTableAssetBoard(definition);
+  }
+
   const board = penpot.createBoard();
   board.name = definition.name;
   board.resize(definition.width, definition.height);
@@ -202,21 +292,31 @@ function createBasicAssetBoard(definition: BasicAssetDefinition): Board {
   return board;
 }
 
-/** Creates missing assets and writes their initial exporter metadata. */
-function createAssets(definitions: readonly BasicAssetDefinition[]): string[] {
+/** Creates missing assets and repairs exporter metadata on matching existing sources. */
+function createAssets(definitions: readonly BasicAssetDefinition[]): AssetCreationResult {
   const library = penpot.library.local;
   const createdAssetNames: string[] = [];
+  const updatedAssetNames: string[] = [];
 
   for (const definition of definitions) {
     const leafName = definition.name.replace(/^BRMS /, "");
+    const normalizedDefinitionPath = normalizeLibraryPath(definition.libraryPath);
     const existing = library.components.find(
       (component) =>
         component.name === definition.name ||
-        (component.name === leafName && component.path === definition.libraryPath),
+        (component.name === leafName &&
+          normalizeLibraryPath(component.path) === normalizedDefinitionPath),
     );
     if (existing) {
       existing.name = leafName;
       existing.path = definition.libraryPath;
+      if (!readXuiMetadata(existing).metadata) {
+        writeLibraryComponentMetadata(
+          existing,
+          createXuiMetadata(definition.component, definition.props),
+        );
+      }
+      updatedAssetNames.push(`${existing.path} / ${existing.name}`);
       continue;
     }
 
@@ -230,16 +330,16 @@ function createAssets(definitions: readonly BasicAssetDefinition[]): string[] {
     createdAssetNames.push(`${component.path} / ${component.name}`);
   }
 
-  return createdAssetNames;
+  return { createdAssetNames, updatedAssetNames };
 }
 
 /** Creates the original button/input/field starter assets. */
-function createBasicAssets(): string[] {
+function createBasicAssets(): AssetCreationResult {
   return createAssets(BASIC_ASSET_DEFINITIONS);
 }
 
 /** Creates the Form input/select/date-picker starter assets. */
-function createFormAssets(): string[] {
+function createFormAssets(): AssetCreationResult {
   return createAssets(FORM_ASSET_DEFINITIONS);
 }
 
@@ -320,20 +420,22 @@ function handleRequest(message: HostRequest): void {
         sendSelection();
         return;
       case "CREATE_BASIC_ASSETS": {
-        const createdAssetNames = createBasicAssets();
+        const { createdAssetNames, updatedAssetNames } = createBasicAssets();
         penpot.ui.sendMessage({
           type: "BASIC_ASSETS_CREATED",
           assets: listLibraryComponents(),
           createdAssetNames,
+          updatedAssetNames,
         });
         return;
       }
       case "CREATE_FORM_ASSETS": {
-        const createdAssetNames = createFormAssets();
+        const { createdAssetNames, updatedAssetNames } = createFormAssets();
         penpot.ui.sendMessage({
           type: "FORM_ASSETS_CREATED",
           assets: listLibraryComponents(),
           createdAssetNames,
+          updatedAssetNames,
         });
         return;
       }

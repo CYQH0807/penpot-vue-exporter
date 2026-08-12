@@ -1,7 +1,62 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { IRDocument } from "../src/core/ir/ir.types";
+import type { IRDocument, IRNode } from "../src/core/ir/ir.types";
 import { generateVueSfc } from "./vueGenerator";
+
+/** Builds a field fixture with the nested control structure used by the Penpot page. */
+function createNestedFieldFixture(
+  id: string,
+  label: string,
+  controlChildren: IRNode[],
+): IRNode {
+  return {
+    id,
+    name: `field.${id}`,
+    nodeType: "container",
+    source: {
+      shapeId: id,
+      shapeType: "board",
+      parentId: "root-1",
+      x: 0,
+      y: 0,
+      width: 276,
+      height: 72,
+    },
+    children: [
+      {
+        id: `${id}-label`,
+        name: `label.${id}`,
+        nodeType: "container",
+        source: {
+          shapeId: `${id}-label`,
+          shapeType: "text",
+          parentId: id,
+          x: 0,
+          y: 0,
+          width: 80,
+          height: 15,
+          text: label,
+        },
+        children: [],
+      },
+      {
+        id: `${id}-control`,
+        name: `control.${id}`,
+        nodeType: "container",
+        source: {
+          shapeId: `${id}-control`,
+          shapeType: "board",
+          parentId: id,
+          x: 0,
+          y: 24,
+          width: 240,
+          height: 34,
+        },
+        children: controlChildren,
+      },
+    ],
+  };
+}
 
 const sampleDocument: IRDocument = {
   schemaVersion: "0.1",
@@ -231,4 +286,266 @@ test("generates Flex CSS and layout item wrappers from IR", () => {
   assert.match(output, /padding: 24px 16px 24px 16px;/);
   assert.match(output, /\.p-item-1/);
   assert.match(output, /width: 80px;/);
+});
+
+test("generates visual CSS for unmarked containers and text", () => {
+  const visualDocument: IRDocument = {
+    ...sampleDocument,
+    tree: {
+      ...sampleDocument.tree,
+      children: [
+        {
+          id: "panel-1",
+          name: "panel.basic",
+          nodeType: "container",
+          source: {
+            shapeId: "panel-1",
+            shapeType: "board",
+            parentId: "root-1",
+            x: 0,
+            y: 0,
+            width: 400,
+            height: 200,
+            style: {
+              fill: { color: "#FFFFFF", opacity: 1 },
+              stroke: { color: "#E5E6EB", opacity: 1, width: 1, style: "solid" },
+              borderRadius: { topLeft: 8, topRight: 8, bottomRight: 8, bottomLeft: 8 },
+              shadow: {
+                style: "drop-shadow",
+                offsetX: 0,
+                offsetY: 2,
+                blur: 8,
+                spread: 0,
+                color: "#000000",
+                opacity: 0.12,
+              },
+            },
+          },
+          children: [
+            {
+              id: "title-1",
+              name: "page.title",
+              nodeType: "container",
+              source: {
+                shapeId: "title-1",
+                shapeType: "text",
+                parentId: "panel-1",
+                x: 16,
+                y: 16,
+                width: 120,
+                height: 24,
+                text: "合同详情",
+                style: {
+                  text: {
+                    color: { color: "#1D2129", opacity: 0.9 },
+                    fontFamily: "Inter",
+                    fontSize: "16",
+                    fontWeight: "600",
+                    lineHeight: "24",
+                    letterSpacing: "0",
+                    align: "left",
+                  },
+                },
+              },
+              children: [],
+            },
+          ],
+        },
+      ],
+    },
+  };
+
+  const output = generateVueSfc(visualDocument);
+
+  assert.match(output, /background-color: #FFFFFF;/);
+  assert.match(output, /border: 1px solid #E5E6EB;/);
+  assert.match(output, /border-radius: 8px 8px 8px 8px;/);
+  assert.match(output, /box-shadow: 0px 2px 8px 0px rgba\(0, 0, 0, 0\.12\);/);
+  assert.match(output, /color: rgba\(29, 33, 41, 0\.9\);/);
+  assert.match(output, /font-size: 16px;/);
+  assert.match(output, /font-weight: 600;/);
+  assert.match(output, /line-height: 24px;/);
+});
+
+test("renders unmarked text and conventional input layers", () => {
+  const fieldDocument: IRDocument = {
+    ...sampleDocument,
+    tree: {
+      ...sampleDocument.tree,
+      children: [
+        {
+          id: "field-party-b-address",
+          name: "field.partyBAddress",
+          nodeType: "container",
+          source: {
+            shapeId: "field-party-b-address",
+            shapeType: "group",
+            parentId: "root-1",
+            x: 0,
+            y: 0,
+            width: 300,
+            height: 76,
+          },
+          children: [
+            {
+              id: "label-party-b-address",
+              name: "label.partyBAddress",
+              nodeType: "container",
+              source: {
+                shapeId: "label-party-b-address",
+                shapeType: "text",
+                parentId: "field-party-b-address",
+                x: 0,
+                y: 0,
+                width: 80,
+                height: 20,
+                text: "乙方地址",
+              },
+              children: [],
+            },
+            {
+              id: "control-party-b-address",
+              name: "control.partyBAddress",
+              nodeType: "container",
+              source: {
+                shapeId: "control-party-b-address",
+                shapeType: "board",
+                parentId: "field-party-b-address",
+                x: 0,
+                y: 24,
+                width: 240,
+                height: 34,
+              },
+              children: [
+                {
+                  id: "input-surface-party-b-address",
+                  name: "input.surface",
+                  nodeType: "container",
+                  source: {
+                    shapeId: "input-surface-party-b-address",
+                    shapeType: "rectangle",
+                    parentId: "control-party-b-address",
+                    x: 0,
+                    y: 0,
+                    width: 238,
+                    height: 32,
+                  },
+                  children: [],
+                },
+                {
+                  id: "input-placeholder-party-b-address",
+                  name: "input.placeholder",
+                  nodeType: "container",
+                  source: {
+                    shapeId: "input-placeholder-party-b-address",
+                    shapeType: "text",
+                    parentId: "control-party-b-address",
+                    x: 12,
+                    y: 8,
+                    width: 120,
+                    height: 16,
+                    text: "请输入乙方地址",
+                  },
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  };
+
+  const output = generateVueSfc(fieldDocument);
+
+  assert.match(output, /<XFormItem label="乙方地址" prop="partyBAddress">/);
+  assert.match(output, /<XInput v-model="form\.partyBAddress" placeholder="请输入乙方地址" \/>/);
+  assert.match(output, /const form = reactive<Record<string, unknown>>\(\{\}\);/);
+  assert.doesNotMatch(output, /<!--/);
+});
+
+test("infers nested select and date controls from their visible placeholders", () => {
+  const nestedFieldDocument: IRDocument = {
+    ...sampleDocument,
+    tree: {
+      ...sampleDocument.tree,
+      children: [
+        createNestedFieldFixture("contractType", "合同类型", [
+          {
+            id: "contract-type-placeholder",
+            name: "请选择状态",
+            nodeType: "container",
+            source: {
+              shapeId: "contract-type-placeholder",
+              shapeType: "text",
+              parentId: "contractType-control",
+              x: 12,
+              y: 8,
+              width: 70,
+              height: 16,
+              text: "请选择状态",
+            },
+            children: [],
+          },
+          {
+            id: "contract-type-arrow",
+            name: "⌄",
+            nodeType: "container",
+            source: {
+              shapeId: "contract-type-arrow",
+              shapeType: "text",
+              parentId: "contractType-control",
+              x: 214,
+              y: 8,
+              width: 9,
+              height: 16,
+              text: "⌄",
+            },
+            children: [],
+          },
+        ]),
+        createNestedFieldFixture("signDate", "签订日期", [
+          {
+            id: "sign-date-placeholder",
+            name: "请选择日期",
+            nodeType: "container",
+            source: {
+              shapeId: "sign-date-placeholder",
+              shapeType: "text",
+              parentId: "signDate-control",
+              x: 12,
+              y: 8,
+              width: 70,
+              height: 16,
+              text: "请选择日期",
+            },
+            children: [],
+          },
+          {
+            id: "sign-date-icon",
+            name: "▣",
+            nodeType: "container",
+            source: {
+              shapeId: "sign-date-icon",
+              shapeType: "text",
+              parentId: "signDate-control",
+              x: 214,
+              y: 8,
+              width: 13,
+              height: 16,
+              text: "▣",
+            },
+            children: [],
+          },
+        ]),
+      ],
+    },
+  };
+
+  const output = generateVueSfc(nestedFieldDocument);
+
+  assert.match(output, /<XFormItem label="合同类型" prop="contractType">/);
+  assert.match(output, /<XSelect v-model="form\.contractType" placeholder="请选择状态" \/>/);
+  assert.match(output, /<XFormItem label="签订日期" prop="signDate">/);
+  assert.match(output, /<XDatePicker v-model="form\.signDate" placeholder="请选择日期" type="date" \/>/);
 });

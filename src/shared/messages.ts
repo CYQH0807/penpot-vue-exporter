@@ -74,11 +74,13 @@ export type PluginMessage =
       type: "BASIC_ASSETS_CREATED";
       assets: LibraryComponentSummary[];
       createdAssetNames: string[];
+      updatedAssetNames: string[];
     }
   | {
       type: "FORM_ASSETS_CREATED";
       assets: LibraryComponentSummary[];
       createdAssetNames: string[];
+      updatedAssetNames: string[];
     }
   | {
       type: "COMPONENT_INSTANCE_INSERTED";
