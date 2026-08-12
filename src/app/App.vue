@@ -10,13 +10,12 @@ import {
   type XuiProps,
 } from "../core/metadata/metadata.types";
 import type {
-  DebugShapeInfo,
   PluginMessage,
   SelectionShapeSummary,
 } from "../shared/messages";
 import { sendPluginRequest, subscribeToPluginMessages } from "./services/penpotBridge";
 
-type Tab = "mark" | "export" | "debug";
+type Tab = "mark" | "export";
 
 const activeTab = ref<Tab>("mark");
 const component = ref<XuiComponent>("XButton");
@@ -25,11 +24,9 @@ const selection = ref<SelectionShapeSummary[]>([]);
 const assets = ref<LibraryComponentSummary[]>([]);
 const activeAssetKey = ref("");
 const successMessage = ref("");
-const exportJson = ref("");
 const vueSource = ref("");
 const vueFileName = ref("penpot-export.vue");
 const diagnostics = ref<string[]>([]);
-const debugShapes = ref<DebugShapeInfo[]>([]);
 const errorMessage = ref("");
 let unsubscribe: (() => void) | undefined;
 
@@ -167,17 +164,12 @@ function handlePluginMessage(message: PluginMessage): void {
       successMessage.value = `已插入组件实例：${message.componentName}`;
       return;
     case "EXPORT_RESULT":
-      exportJson.value = message.json;
       vueSource.value = generateVueSfc(message.document);
       vueFileName.value = buildVueFileName(message.document.tree.name);
       diagnostics.value = message.diagnostics.map(
         (diagnostic) => `${diagnostic.shapeName}: ${diagnostic.message}`,
       );
       activeTab.value = "export";
-      return;
-    case "DEBUG_RESULT":
-      debugShapes.value = message.shapes;
-      activeTab.value = "debug";
       return;
     case "ERROR":
       errorMessage.value = message.message;
@@ -245,7 +237,7 @@ function removeMetadata(): void {
   sendPluginRequest({ type: "REMOVE_METADATA", assetKey: activeAssetKey.value });
 }
 
-/** Parses the selected root into the exporter IR and displays its JSON preview. */
+/** Requests the selected root and generates its Vue SFC preview. */
 function exportSelection(): void {
   sendPluginRequest({ type: "EXPORT_SELECTION" });
 }
@@ -261,11 +253,6 @@ function downloadVueFile(): void {
   link.download = vueFileName.value;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-/** Requests bounded Shape diagnostics for API exploration. */
-function debugSelection(): void {
-  sendPluginRequest({ type: "DEBUG_SELECTION" });
 }
 
 /** Switches the marker form to a new component with starter props. */
@@ -300,7 +287,7 @@ onBeforeUnmount(() => unsubscribe?.());
     <header class="plugin-header">
       <div>
         <h1>Penpot Vue Exporter</h1>
-        <p>标记语义节点，导出稳定 IR</p>
+        <p>标记语义节点，导出 Vue 页面</p>
       </div>
       <span class="schema-badge">xui v{{ XUI_SCHEMA_VERSION }}</span>
     </header>
@@ -308,7 +295,6 @@ onBeforeUnmount(() => unsubscribe?.());
     <nav class="tabs" aria-label="插件功能">
       <button :class="{ active: activeTab === 'mark' }" @click="activeTab = 'mark'">标记</button>
       <button :class="{ active: activeTab === 'export' }" @click="activeTab = 'export'">导出</button>
-      <button :class="{ active: activeTab === 'debug' }" @click="activeTab = 'debug'">调试</button>
     </nav>
 
     <section v-if="errorMessage" class="notice error">{{ errorMessage }}</section>
@@ -321,7 +307,7 @@ onBeforeUnmount(() => unsubscribe?.());
         </div>
         <div class="heading-actions">
           <button class="secondary" @click="refreshSelection">刷新</button>
-          <button class="primary" :disabled="!hasSelection" @click="exportSelection">导出 IR</button>
+          <button class="primary" :disabled="!hasSelection" @click="exportSelection">导出 Vue</button>
           <button class="primary" @click="createBasicAssets">创建/整理基础组件与表格</button>
           <button class="primary" @click="createFormAssets">创建/整理 Form 组件</button>
         </div>
@@ -379,14 +365,13 @@ onBeforeUnmount(() => unsubscribe?.());
     <section v-else-if="activeTab === 'export'" class="panel">
       <div class="panel-heading">
         <div>
-          <h2>导出 IR / Vue</h2>
-          <p>选择根 Board，导出 IR 并生成对应的 Vue SFC 文件。</p>
+          <h2>导出 Vue</h2>
+          <p>选择根 Board，生成对应的 Vue SFC 文件。</p>
         </div>
-        <button class="primary" :disabled="!hasSelection" @click="exportSelection">导出 IR + Vue</button>
+        <button class="primary" :disabled="!hasSelection" @click="exportSelection">导出 Vue</button>
       </div>
 
-      <div v-if="exportJson" class="export-result">
-        <pre>{{ exportJson }}</pre>
+      <div v-if="vueSource || diagnostics.length" class="export-result">
         <div v-if="diagnostics.length" class="notice warning">
           <strong>解析提示</strong>
           <div v-for="diagnostic in diagnostics" :key="diagnostic">{{ diagnostic }}</div>
@@ -400,18 +385,6 @@ onBeforeUnmount(() => unsubscribe?.());
         </div>
       </div>
       <div v-else class="empty-state">还没有导出结果。</div>
-    </section>
-
-    <section v-else class="panel">
-      <div class="panel-heading">
-        <div>
-          <h2>API 调试</h2>
-          <p>只显示可序列化的 Shape 信息，避免直接暴露 Penpot 对象。</p>
-        </div>
-        <button class="secondary" :disabled="!hasSelection" @click="debugSelection">读取</button>
-      </div>
-      <pre v-if="debugShapes.length" class="debug-output">{{ JSON.stringify(debugShapes, null, 2) }}</pre>
-      <div v-else class="empty-state">还没有调试结果。</div>
     </section>
   </main>
 </template>

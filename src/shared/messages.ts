@@ -23,24 +23,6 @@ export interface SelectionShapeSummary {
   assetName: string | null;
 }
 
-export interface DebugShapeInfo {
-  id: string;
-  name: string;
-  type: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  parentId: string | null;
-  pluginDataKeys: string[];
-  metadata: XuiMetadata | null;
-  metadataError: string | null;
-  metadataSource: XuiMetadataSource;
-  assetKey: string | null;
-  assetName: string | null;
-  children: DebugShapeInfo[];
-}
-
 export type HostRequest =
   | { type: "GET_SELECTION" }
   | { type: "CREATE_BASIC_ASSETS" }
@@ -54,7 +36,6 @@ export type HostRequest =
     }
   | { type: "REMOVE_METADATA"; assetKey?: string | null }
   | { type: "EXPORT_SELECTION" }
-  | { type: "DEBUG_SELECTION" }
   | { type: "CLOSE_PLUGIN" };
 
 export type PluginMessage =
@@ -93,7 +74,5 @@ export type PluginMessage =
       type: "EXPORT_RESULT";
       document: IRDocument;
       diagnostics: ParserDiagnostic[];
-      json: string;
     }
-  | { type: "DEBUG_RESULT"; shapes: DebugShapeInfo[] }
   | { type: "ERROR"; message: string };

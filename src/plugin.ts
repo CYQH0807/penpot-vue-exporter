@@ -12,7 +12,7 @@ import {
   writeLibraryComponentMetadata,
 } from "./core/metadata/assetMetadata.service";
 import { parsePenpotSelection } from "./core/parser/penpotParser";
-import { buildDebugShapeInfo, summarizeShape } from "./core/penpot/shapeInfo";
+import { summarizeShape } from "./core/penpot/shapeInfo";
 import type {
   XTableProps,
   XuiComponent,
@@ -477,16 +477,9 @@ function handleRequest(message: HostRequest): void {
           type: "EXPORT_RESULT",
           document: result.document,
           diagnostics: result.diagnostics,
-          json: JSON.stringify(result.document, null, 2),
         });
         return;
       }
-      case "DEBUG_SELECTION":
-        penpot.ui.sendMessage({
-          type: "DEBUG_RESULT",
-          shapes: penpot.selection.map((shape) => buildDebugShapeInfo(shape)),
-        });
-        return;
       case "CLOSE_PLUGIN":
         penpot.closePlugin();
         return;

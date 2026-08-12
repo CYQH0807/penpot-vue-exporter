@@ -250,8 +250,7 @@ button.secondary {
 }
 
 .export-result pre,
-.vue-result pre,
-.debug-output {
+.vue-result pre {
   max-height: 470px;
   overflow: auto;
   margin: 0;
